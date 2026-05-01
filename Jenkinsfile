@@ -11,7 +11,7 @@ pipeline {
         RELEASE = "1.0.0"
         DOCKER_USER = "khaledelnabawy1"
         DOCKER_PASS = "dockerhub"
-        IMAGE_NAME = "${DOCKER_USER}" + "/" + "${APP_NAME}"
+        IMAGE_NAME = "${DOCKER_USER}/${APP_NAME}"
         IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
     }
 
@@ -25,7 +25,9 @@ pipeline {
 
         stage('Checkout from SCM') {
             steps {
-                git branch: 'main', credentialsId: 'github', url: 'https://github.com/Khaled-elnabawy/end-to-end-ci-cd-pipeline'
+                git branch: 'main',
+                credentialsId: 'github',
+                url: 'https://github.com/Khaled-elnabawy/end-to-end-ci-cd-pipeline'
             }
         }
 
@@ -62,16 +64,28 @@ pipeline {
         stage('Build & Push Docker Image') {
             steps {
                 script {
-
                     docker.withRegistry('', DOCKER_PASS) {
-                        docker_image = docker.build("${IMAGE_NAME}")
-                    }
-
-                    docker.withRegistry('', DOCKER_PASS) {
+                        def docker_image = docker.build("${IMAGE_NAME}")
                         docker_image.push("${IMAGE_TAG}")
                         docker_image.push('latest')
                     }
+                }
+            }
+        }
 
+        stage('Trivy Scan') {
+            steps {
+                script {
+                    sh 'docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ${IMAGE_NAME}:latest --no-progress --scanners vuln'
+                }
+            }
+        }
+
+        stage('Cleanup Artifacts') {
+            steps {
+                script {
+                    sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG}"
+                    sh "docker rmi ${IMAGE_NAME}:latest"
                 }
             }
         }
