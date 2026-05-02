@@ -75,11 +75,20 @@ pipeline {
         }
 
         stage('Trivy Scan') {
-    steps {
-        echo "Skipping Trivy temporarily"
+            steps {
+                script {
+                    sh """
+                    docker run --rm \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    aquasec/trivy image ${IMAGE_NAME}:latest \
+                    --no-progress \
+                    --scanners vuln \
+                    --severity HIGH,CRITICAL \
+                    --exit-code 0
+                    """
+                }
+            }
         }
-      }
- }
 
         stage('Cleanup Artifacts') {
             steps {
