@@ -109,7 +109,7 @@ pipeline {
                     -H 'cache-control: no-cache' \
                     -H 'content-type: application/x-www-form-urlencoded' \
                     --data 'IMAGE_TAG=${IMAGE_TAG}' \
-                    'http://ec2-3-82-55-44.compute-1.amazonaws.com:8080/job/gitops-register-app-cd/buildWithParameters?token=gitops-token'
+                    'http://ec2-54-172-254-216.compute-1.amazonaws.com:8080/job/gitops-register-app-cd/buildWithParameters?token=gitops-token'
                     """
                 }
             }
