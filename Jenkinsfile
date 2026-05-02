@@ -80,6 +80,7 @@ pipeline {
                     sh """
                     docker run --rm \
                     -v /var/run/docker.sock:/var/run/docker.sock \
+                    -v \$HOME/.cache:/root/.cache \
                     aquasec/trivy image ${IMAGE_NAME}:latest \
                     --no-progress \
                     --scanners vuln \
@@ -93,8 +94,8 @@ pipeline {
         stage('Cleanup Artifacts') {
             steps {
                 script {
-                    sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG}"
-                    sh "docker rmi ${IMAGE_NAME}:latest"
+                    sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG} || true"
+                    sh "docker rmi ${IMAGE_NAME}:latest || true"
                 }
             }
         }
@@ -102,10 +103,26 @@ pipeline {
         stage('Trigger CD Pipeline') {
             steps {
                 script {
-                    sh "curl -v -k --user khaledelnabawy:${JENKINS_API_TOKEN} -X POST -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' --data 'IMAGE_TAG=${IMAGE_TAG}' 'http://ec2-3-82-55-44.compute-1.amazonaws.com:8080/job/gitops-register-app-cd/buildWithParameters?token=gitops-token'"
+                    sh """
+                    curl -v -k --user khaledelnabawy:${JENKINS_API_TOKEN} \
+                    -X POST \
+                    -H 'cache-control: no-cache' \
+                    -H 'content-type: application/x-www-form-urlencoded' \
+                    --data 'IMAGE_TAG=${IMAGE_TAG}' \
+                    'http://ec2-3-82-55-44.compute-1.amazonaws.com:8080/job/gitops-register-app-cd/buildWithParameters?token=gitops-token'
+                    """
                 }
             }
         }
 
+    }
+
+    post {
+        failure {
+            echo "Build Failed ❌"
+        }
+        success {
+            echo "Build Success ✅"
+        }
     }
 }
